@@ -72,44 +72,84 @@ inline const Eigen::TensorMap<Eigen::Tensor<float, 2>> tbvec(const Tensor & t) {
 template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order>> t(Tensor & t);
 template <int Order> inline const Eigen::TensorMap<Eigen::Tensor<float, Order>> t(const Tensor & t);
 
+#include "tensor-eigen_helper.h"
+
+template<int Order>
+struct _create_tensor_without_batch{
+    using return_type = Eigen::TensorMap<Eigen::Tensor<float, Order>>;
+    inline _create_tensor_without_batch(float * data)  : data_(data){} 
+    _create_tensor_without_batch() = delete;
+    float *data_;
+
+    template<typename ... Args>
+    inline return_type operator()(Args ... args){ 
+        arbitrary_print(data_, args...);
+        return return_type{data_, args...}; 
+    }
+
+    template<int M, int N>
+    inline return_type call_from_branching(const std::vector<unsigned>&v){
+        return _fill_one_call_f<_create_tensor_without_batch<Order>>{*this}. template FillOne<M,N>(v);
+    }
+};
+
+template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order>> t(Tensor & t){
+
+    _create_tensor_without_batch<Order> f(t.v);
+    std::vector<unsigned>v;
+    for(int i = 0; i< t.d.size(); i++)
+        v.push_back(i);
+    return _branch_vector_size<Order,Order,_create_tensor_without_batch<Order>>::_call(f,v);
+}
+
+
+/*
 template<> inline Eigen::TensorMap<Eigen::Tensor<float, 0>> t<0>(Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.size() == 1, "Illegal access of tensor in function t<0>(Tensor & t): dim=" << d);
   return Eigen::TensorMap<Eigen::Tensor<float, 0>>(t.v);
 }
+*/
 template<> inline const Eigen::TensorMap<Eigen::Tensor<float, 0>> t<0>(const Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.size() == 1, "Illegal access of tensor in function t<0>(Tensor & t): dim=" << d);
   return Eigen::TensorMap<Eigen::Tensor<float, 0>>(t.v);
 }
+/*
 template<> inline Eigen::TensorMap<Eigen::Tensor<float, 1>> t<1>(Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && (t.d.ndims() == 1 || t.d.size() == t.d.rows()), "Illegal access of tensor in function t<1>(Tensor & t): dim=" << d);
   return Eigen::TensorMap<Eigen::Tensor<float, 1>>(t.v, (int)t.d[0]);
 }
+*/
 template<> inline const Eigen::TensorMap<Eigen::Tensor<float, 1>> t<1>(const Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && (t.d.ndims() == 1 || t.d.size() == t.d.rows()), "Illegal access of tensor in function t<1>(Tensor & t): dim=" << d);
   return Eigen::TensorMap<Eigen::Tensor<float, 1>>(t.v, (int)t.d[0]);
 }
+/*
 template<> inline Eigen::TensorMap<Eigen::Tensor<float, 2>> t<2>(Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.ndims() <= 2, "Illegal access of tensor in function t<2>(Tensor & t): dim=" << d);
   if (t.d.ndims() == 2) return Eigen::TensorMap<Eigen::Tensor<float, 2>>(t.v, (int)t.d[0], (int)t.d[1]);
   else               return Eigen::TensorMap<Eigen::Tensor<float, 2>>(t.v, (int)t.d[0], (int)1);
 }
+*/
 template<> inline const Eigen::TensorMap<Eigen::Tensor<float, 2>> t<2>(const Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.ndims() <= 2, "Illegal access of tensor in function t<2>(Tensor & t): dim=" << d);
   if (t.d.ndims() == 2) return Eigen::TensorMap<Eigen::Tensor<float, 2>>(t.v, (int)t.d[0], (int)t.d[1]);
   else               return Eigen::TensorMap<Eigen::Tensor<float, 2>>(t.v, (int)t.d[0], (int)1);
 }
+/*
 template<> inline Eigen::TensorMap<Eigen::Tensor<float, 3>> t<3>(Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.ndims() <= 3, "Illegal access of tensor in function t<3>(Tensor & t): dim=" << d);
   if (t.d.ndims() == 3)      return Eigen::TensorMap<Eigen::Tensor<float, 3>>(t.v, (int)t.d[0], (int)t.d[1], (int)t.d[2]);
   else if (t.d.ndims() == 2) return Eigen::TensorMap<Eigen::Tensor<float, 3>>(t.v, (int)t.d[0], (int)t.d[1], (int)1);
   else                    return Eigen::TensorMap<Eigen::Tensor<float, 3>>(t.v, (int)t.d[0], (int)1, (int)1);
 }
+*/
 template<> inline const Eigen::TensorMap<Eigen::Tensor<float, 3>> t<3>(const Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.ndims() <= 3, "Illegal access of tensor in function t<3>(Tensor & t): dim=" << d);
   if (t.d.ndims() == 3)      return Eigen::TensorMap<Eigen::Tensor<float, 3>>(t.v, (int)t.d[0], (int)t.d[1], (int)t.d[2]);
   else if (t.d.ndims() == 2) return Eigen::TensorMap<Eigen::Tensor<float, 3>>(t.v, (int)t.d[0], (int)t.d[1], (int)1);
   else                    return Eigen::TensorMap<Eigen::Tensor<float, 3>>(t.v, (int)t.d[0], (int)1, (int)1);
 }
+/*
 template<> inline Eigen::TensorMap<Eigen::Tensor<float, 4>> t<4>(Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.ndims() <= 4, "Illegal access of tensor in function t<4>(Tensor & t): dim=" << d);
   if (t.d.ndims() == 4)      return Eigen::TensorMap<Eigen::Tensor<float, 4>>(t.v, (int)t.d[0], (int)t.d[1], (int)t.d[2], (int)t.d[3]);
@@ -117,6 +157,7 @@ template<> inline Eigen::TensorMap<Eigen::Tensor<float, 4>> t<4>(Tensor & t) {
   else if (t.d.ndims() == 2) return Eigen::TensorMap<Eigen::Tensor<float, 4>>(t.v, (int)t.d[0], (int)t.d[1], (int)1, (int)1);
   else                    return Eigen::TensorMap<Eigen::Tensor<float, 4>>(t.v, (int)t.d[0], (int)1, (int)1, (int)1);
 }
+*/
 template<> inline const Eigen::TensorMap<Eigen::Tensor<float, 4>> t<4>(const Tensor & t) {
   DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.ndims() <= 4, "Illegal access of tensor in function t<4>(Tensor & t): dim=" << d);
   if (t.d.ndims() == 4)      return Eigen::TensorMap<Eigen::Tensor<float, 4>>(t.v, (int)t.d[0], (int)t.d[1], (int)t.d[2], (int)t.d[3]);
