@@ -29,7 +29,7 @@ namespace dynet{
                     static inline typename std::enable_if< (N>sizeof...(Args)) ,typename Function::return_type>::type
                     apply(typename Function::Fargs&& func_args, const dynet::Dim& v, Args...args){ 
                         return fill_one_call_f<Function>::
-                            apply<M,N>(std::forward<typename Function::Fargs>(func_args), v, args..., v[sizeof...(Args)]);
+                            apply<M,N>(std::forward<typename Function::Fargs>(func_args), v, args..., static_cast<int>(v[sizeof...(Args)]));
                     }
 
                 template<unsigned M, unsigned N, typename ...Args>
