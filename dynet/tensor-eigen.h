@@ -94,11 +94,7 @@ struct _create_tensor_with_batch_2{
  * \brief Get view as a Tensor
  * \tparam Order Tensor order. 
  * \return Eigen Tensor of the given order
- */
- 
-
-
-
+ */ 
 template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order>> t(Tensor & t){ 
     detail::_check_t<Order>(t.d);
     return detail::branch_then_supply_one<Order, _create_tensor_without_batch_2>::
@@ -111,6 +107,11 @@ template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order>> t(cons
         generate_loop(std::make_tuple(t.v),t.d);
 }
 
+/**
+ * \brief Get view as an Eigen Tensor where the final dimension is the various batches
+ * \tparam Order Tensor order. 
+ * \return Eigen Tensor of the given order + 1
+ */
 template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order+1>> tb(Tensor & t){ 
     detail::_check_tb<Order>(t.d);
     return detail::branch_then_supply_one<Order,_create_tensor_with_batch_2>::
@@ -134,9 +135,7 @@ template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order+1>> tb(c
 inline Eigen::Map<Eigen::MatrixXf> batch_matrix(Tensor & t, unsigned bid) {
   return Eigen::Map<Eigen::MatrixXf>(t.v + (bid % t.d.bd) * t.d.batch_size(), t.d.rows(), t.d.cols());
 }
-inline const Eigen::Map<Eigen::MatrixXf> batch_matrix(const Tensor & t, unsigned bid) {
-  return Eigen::Map<Eigen::MatrixXf>(t.v + (bid % t.d.bd) * t.d.batch_size(), t.d.rows(), t.d.cols());
-}
+inline const Eigen::Map<Eigen::MatrixXf> batch_matrix(const Tensor & t, unsigned bid) { return Eigen::Map<Eigen::MatrixXf>(t.v + (bid % t.d.bd) * t.d.batch_size(), t.d.rows(), t.d.cols()); }
 /**
  * \brief Get the data as a matrix, where each "row" is the concatenation of rows and columns, and each "column" is batches
  * \return matrix of shape `t.d.rows() * t.d.cols()` x `t.d.batch_elems()`
