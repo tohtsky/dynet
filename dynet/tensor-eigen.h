@@ -65,86 +65,62 @@ inline const Eigen::TensorMap<Eigen::Tensor<float, 2>> tbvec(const Tensor & t) {
   return Eigen::TensorMap<Eigen::Tensor<float, 2>>(t.v, t.d.batch_size(), t.d.batch_elems());
 }
 
+struct _create_tensor_without_batch_2{
+    template<int Order>
+        using return_type = Eigen::TensorMap<Eigen::Tensor<float, Order>>; 
+
+    using Fargs = std::tuple<float*>;
+
+    template<typename ... Args>
+        static inline return_type<sizeof...(Args)> call(Fargs&& fargs, Args ... args){ 
+            return return_type<sizeof...(Args)>{std::get<0>(fargs), args...}; 
+        } 
+};
+
+struct _create_tensor_with_batch_2{
+    template<int Order>
+        using return_type = Eigen::TensorMap<Eigen::Tensor<float, Order+1>>; 
+
+    using Fargs = std::tuple<float*, int>;
+
+    template<typename ... Args>
+        static inline return_type<sizeof...(Args)> call(Fargs&& fargs, Args ... args){ 
+            return return_type<sizeof...(Args)>{std::get<0>(fargs), args..., std::get<1>(fargs)}; // append batch dim 
+        }
+};
+
 // Get view as an Eigen Tensor (see specializations below-- this is to work Eigen's and DyNet's compile-type vs. run-time differences)
 /**
  * \brief Get view as a Tensor
  * \tparam Order Tensor order. 
  * \return Eigen Tensor of the given order
  */
+ 
 
 
-template<int Order>
-struct _create_tensor_without_batch{
-    using return_type = Eigen::TensorMap<Eigen::Tensor<float, Order>>;
-    using fargs = std::tuple<float*>;
-    using self_type = _create_tensor_without_batch<Order>; 
-
-    template<int M, int N>
-    static inline return_type supply_one_call(fargs&& args, const dynet::Dim &v){
-        return _fill_one_call_f<self_type>:: template FillOne<M,N>(std::forward<fargs>(args), v);
-    }
-    template<typename ... Args>
-    static inline return_type call(fargs&& fargs, Args ... args){ 
-        return return_type{std::get<0>(fargs), args...}; 
-    }
-
-};
-
-template<int Order>
-struct _create_tensor_with_batch{
-    using return_type = Eigen::TensorMap<Eigen::Tensor<float, Order+1>>;
-    using fargs = std::tuple<float*, int>;
-    using self_type = _create_tensor_with_batch<Order>; 
-
-    template<int M, int N>
-    static inline return_type supply_one_call(fargs&& args, const dynet::Dim &v){
-        return _fill_one_call_f<self_type>:: template FillOne<M,N>(std::forward<fargs>(args), v);
-    }
-    template<typename ... Args>
-    static inline return_type call(fargs&& fargs, Args ... args){ 
-        return return_type{std::get<0>(fargs), args..., std::get<1>(fargs)}; 
-    }
-
-};
-
-
-template <int Order>
-inline void _check_t(const dynet::Dim &d){
-    DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.ndims() <= Order,
-            "Illegal access of tensor in function t<" << Order << ">(Tensor & t): dim=" << d); 
-}
-
-template <>
-inline void _check_t<0>(const dynet::Dim &d){
-    DYNET_ASSERT(t.d.batch_elems() == 1 && t.d.size() == 1,
-            "Illegal access of tensor in function t<0>(Tensor & t): dim=" << d); 
-}
-
-template <>
-inline void _check_t<1>(const dynet::Dim &d){
-    DYNET_ASSERT(t.d.batch_elems() == 1 && (t.d.ndims() == 1 || t.d.size() == t.d.rows()),
-            "Illegal access of tensor in function t<1>(Tensor & t): dim=" << d);
-} 
 
 template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order>> t(Tensor & t){ 
-    _check_t<Order>(t.d);
-    std::tuple<float * > arg(t.v);
-    return _branch_vector_size<Order,Order,_create_tensor_without_batch<Order>>::_call(std::make_tuple(t.v),t.d);
+    detail::_check_t<Order>(t.d);
+    return detail::branch_then_supply_one<Order, _create_tensor_without_batch_2>::
+        generate_loop(std::make_tuple(t.v),t.d);
 }
 
 template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order>> t(const Tensor & t){ 
-    _check_t<Order>(t.d); 
-    std::tuple<float * > arg(t.v); 
-    return _branch_vector_size<Order,Order,_create_tensor_without_batch<Order>>::_call(std::make_tuple(t.v),t.d);
+    detail::_check_t<Order>(t.d); 
+    return detail::branch_then_supply_one<Order, _create_tensor_without_batch_2>::
+        generate_loop(std::make_tuple(t.v),t.d);
 }
 
 template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order+1>> tb(Tensor & t){ 
-    return _branch_vector_size<Order,Order,_create_tensor_with_batch<Order>>::_call(std::make_tuple(t.v,t.d.bd),t.d);
+    detail::_check_tb<Order>(t.d);
+    return detail::branch_then_supply_one<Order,_create_tensor_with_batch_2>::
+        generate_loop(std::make_tuple(t.v,t.d.bd),t.d);
 }
 
 template <int Order> inline Eigen::TensorMap<Eigen::Tensor<float, Order+1>> tb(const Tensor & t){ 
-    return _branch_vector_size<Order,Order,_create_tensor_with_batch<Order>>::_call(std::make_tuple(t.v,t.d.bd),t.d);
-
+    detail::_check_tb<Order>(t.d); 
+    return detail::branch_then_supply_one<Order,_create_tensor_with_batch_2>::
+        generate_loop(std::make_tuple(t.v,t.d.bd),t.d); 
 }
 
 
