@@ -2,12 +2,15 @@
   <img alt="DyNet" src="doc/source/images/dynet_logo.png"><br><br>
 </div>
 
----
+# DyNet VMS 2017 version
 
-[![Build Status (Travis CI)](https://travis-ci.org/clab/dynet.svg?branch=master)](https://travis-ci.org/clab/dynet)
-[![Build Status (AppVeyor)](https://ci.appveyor.com/api/projects/status/github/clab/dynet?svg=true)](https://ci.appveyor.com/project/danielh/dynet-c3iuq)
-[![Build Status (Docs)](https://readthedocs.org/projects/dynet/badge/?version=latest)](http://dynet.readthedocs.io/en/latest/)
-[![PyPI version](https://badge.fury.io/py/dyNET.svg)](https://badge.fury.io/py/dyNET)
+DyNet公式のcommit 2faafe98bから、独自に以下の修正を加えた。
+
+1. ``SimpleRNNBuilder``にdropoutを実装
+2. ``GRUBuilder``のdropout実装を Gal et. al. のそれに変更
+3. ``set_dropout``がvirtual 指定されていないバグを解消
+
+---
 
 The Dynamic Neural Network Toolkit
 
