@@ -40,7 +40,7 @@ struct GRUBuilder : public RNNBuilder {
 
   virtual void set_dropout(float d) override;
 
-  void set_dropout(float d, float d_h, float d_r);
+  void set_dropout(float d, float d_h);
 
   virtual void disable_dropout() override;
 
@@ -60,7 +60,7 @@ struct GRUBuilder : public RNNBuilder {
   bool dropout_masks_valid;
   ComputationGraph * _cg;
 
-  float dropout_rate_h, dropout_rate_r;
+  float dropout_rate_h;
 
 };
 

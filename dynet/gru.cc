@@ -39,7 +39,7 @@ GRUBuilder::GRUBuilder(unsigned layers,
     vector<Parameter> ps = {p_x2z, p_h2z, p_bz, p_x2r, p_h2r, p_br, p_x2h, p_h2h, p_bh};
     params.push_back(ps);
   }  // layers
-  dropout_rate = dropout_rate_h = dropout_rate_r = 0.f;
+  dropout_rate = dropout_rate_h = 0.f;
 }
 
 void GRUBuilder::new_graph_impl(ComputationGraph& cg, bool update) {
@@ -111,7 +111,7 @@ Expression GRUBuilder::add_input_impl(int prev, const Expression& x) {
       h_tprev = (prev < 0) ? h0[i] : h[prev][i];
     } else { prev_zero = true; }
 
-    if(dropout_rate > 0.f || dropout_rate_h > 0.f || dropout_rate_r > 0.f){
+    if(dropout_rate > 0.f || dropout_rate_h > 0.f ){
       if(!dropout_masks_valid)
         set_dropout_masks(x.dim().bd);
 
@@ -147,8 +147,6 @@ Expression GRUBuilder::add_input_impl(int prev, const Expression& x) {
       in = ht[i] = nwt;
     } else {
       Expression ght = cmult(rt, h_tprev);
-      if(dropout_rate_r > 0.f)
-        ght = cmult(masks[i][2],ght);
       ct = affine_transform({vars[BH], vars[X2H], in, vars[H2H], ght});
       ct = tanh(ct);
       Expression nwt = cmult(zt, ct);
@@ -156,8 +154,7 @@ Expression GRUBuilder::add_input_impl(int prev, const Expression& x) {
       in = ht[i] = crt + nwt;
     }
   }
-  if (dropout_rate) return dropout(ht.back(), dropout_rate);
-  else return ht.back();
+  return ht.back();
 }
 
 void GRUBuilder::copy(const RNNBuilder & rnn) {
@@ -174,17 +171,16 @@ ParameterCollection & GRUBuilder::get_parameter_collection() {
 }
 
 void GRUBuilder::set_dropout(float d){
-    dropout_rate = dropout_rate_h = dropout_rate_r = d;
+    dropout_rate = dropout_rate_h = d;
 }
 
-void GRUBuilder::set_dropout(float d, float d_h, float d_r){
+void GRUBuilder::set_dropout(float d, float d_h){
     dropout_rate = d;
     dropout_rate_h = d_h;
-    dropout_rate_r = d_r;
 }
 
 void GRUBuilder::disable_dropout(){
-    dropout_rate = dropout_rate_h = dropout_rate_r = 0.f; 
+    dropout_rate = dropout_rate_h = 0.f; 
 } 
 
 void GRUBuilder::set_dropout_masks(unsigned batch_size){
@@ -192,24 +188,18 @@ void GRUBuilder::set_dropout_masks(unsigned batch_size){
   for (unsigned i = 0; i < layers; ++i) {
     std::vector<Expression> masks_i;
     unsigned idim = (i == 0) ? input_dim_ : hidden_dim_;
-    if (dropout_rate > 0.f || dropout_rate_h > 0.f || dropout_rate_r > 0.f) {
+    if (dropout_rate > 0.f || dropout_rate_h > 0.f ) {
       float retention_rate = 1.f - dropout_rate;
       float scale = 1.f / retention_rate;
 
       float retention_rate_h = 1.f - dropout_rate_h;
       float scale_h = 1.f / retention_rate_h;
 
-      float retention_rate_r = 1.f - dropout_rate_r;
-      float scale_r = 1.f / retention_rate_r;
-
       // input
       masks_i.push_back(random_bernoulli(*_cg, Dim({idim}, batch_size), retention_rate, scale));
 
       // hidden
       masks_i.push_back(random_bernoulli(*_cg, Dim({hidden_dim_}, batch_size), retention_rate_h, scale_h));
-
-      // gate
-      masks_i.push_back(random_bernoulli(*_cg, Dim({hidden_dim_}, batch_size), retention_rate_r, scale_r));
 
       masks.push_back(masks_i);
     }
