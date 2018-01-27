@@ -1,17 +1,6 @@
 <div align="center">
   <img alt="DyNet" src="doc/source/images/dynet_logo.png"><br><br>
 </div>
-
-# DyNet VMS 2017 version
-
-DyNet公式のcommit 2faafe98bから、独自に以下の修正を加えた。
-
-1. ``SimpleRNNBuilder``にdropoutを実装
-2. ``GRUBuilder``のdropout実装を Gal et. al. のそれに変更
-3. ``set_dropout``がvirtual 指定されていないバグを解消
-
----
-
 The Dynamic Neural Network Toolkit
 
 **News!** The master branch is now DyNet version 2.0 (as of 6/28/2017), which contains a number of changes including a new model format, etc. If you're looking for the old version, check out the [v1.1 branch](https://github.com/clab/dynet/tree/v1.1).
